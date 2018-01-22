@@ -1,6 +1,6 @@
-﻿let
+let
 
-_version = "Excel-1.0.0",
+_version = "Excel-1.0.2",
 
 // Max numbers of records API can return
 _queryPageSize = 500,
@@ -104,13 +104,17 @@ _getApiJson = (url as text, method as text, optional table as text, optional vie
 		"/" & method & ".json"
 	,	webResponse = Web.Contents(apiURL, [ Query = query, ManualStatusHandling = {400,403,404,405,409,500,503} ])
 	,	responseStatus = Value.Metadata(webResponse)[Response.Status]
-	,	jsonResponse = Json.Document(webResponse, 65001)
+	,	jsonResponse = try Json.Document(webResponse, 65001) otherwise null
 	in
-		if responseStatus = null or responseStatus >= 400 then 
-			error Error.Record(
-				"API Error " & Text.From(jsonResponse[error]) & "." & Text.From(jsonResponse[code]), 
-				jsonResponse[message] & (if jsonResponse[source]? <> null then " (" & jsonResponse[source] & ")" else ""))
-		else jsonResponse,
+		if jsonResponse <> null then
+			if responseStatus = null or responseStatus >= 400 then 
+				error Error.Record(
+					"API Error " & Text.From(jsonResponse[error]) & "." & Text.From(jsonResponse[code]), 
+					jsonResponse[message] & (if jsonResponse[source]? <> null then " (" & jsonResponse[source] & ")" else ""))
+			else 
+				jsonResponse
+		else
+			error "Unexpected result. Wrong URL?",
 
 _getBaseApiURL = (url as text) =>
 	let apiDelim = "/api/v2/"
